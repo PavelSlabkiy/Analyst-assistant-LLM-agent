@@ -1,0 +1,200 @@
+{
+    "id": {
+        "field_name": "id",
+        "description": "Уникальный идентификатор вакансии",
+        "type": "int",
+        "sample": 20000
+    },
+    "analytics_id": {
+        "field_name": "analytics_id",
+        "description": "Внутренний аналитический идентификатор вакансии",
+        "type": "string",
+        "sample": "oQj4NLR7"
+    },
+    "published_at": {
+        "field_name": "published_at",
+        "description": "Дата публикации вакансии",
+        "type": "date",
+        "sample": "2024-06-24"
+    },
+    "is_active": {
+        "field_name": "is_active",
+        "description": "Признак активности вакансии",
+        "type": "bool",
+        "sample": True
+    },
+    "type": {
+        "field_name": "type",
+        "description": "Канал публикации вакансии",
+        "type": "string",
+        "sample": "web_and_tg"
+    },
+    "offer_type": {
+        "field_name": "offer_type",
+        "description": "Тип предложения (обычная вакансия, однодневный оффер и т.д.)",
+        "type": "string",
+        "sample": "vacancy"
+    },
+    "position": {
+        "field_name": "position",
+        "description": "Название должности/вакансии",
+        "type": "string",
+        "sample": "Senior Data Engineer"
+    },
+    "specialization": {
+        "field_name": "specialization",
+        "description": "Профессиональная специализация (на английском)",
+        "type": "string",
+        "sample": "Data Engineering"
+    },
+    "position_level": {
+        "field_name": "position_level",
+        "description": "Уровень позиции",
+        "type": "string",
+        "sample": "Senior"
+    },
+    "offer_description": {
+        "field_name": "offer_description",
+        "description": "Краткое HTML-описание вакансии (что делать, о компании)",
+        "type": "string",
+        "sample": "<b>Что делать:</b> Развивать аналитическую инфраструктуру..."
+    },
+    "description": {
+        "field_name": "description",
+        "description": "Полное HTML-описание вакансии (обязанности, требования, условия)",
+        "type": "string",
+        "sample": "<h2>Обязанности</h2><ul><li>...</li></ul>"
+    },
+    "short_description": {
+        "field_name": "short_description",
+        "description": "Короткое описание вакансии для карточек и списков",
+        "type": "string",
+        "sample": "<p>Мы ищем Senior Data Engineer...</p>"
+    },
+    "salary_description": {
+        "field_name": "salary_description",
+        "description": "Текстовое описание зарплаты",
+        "type": "string",
+        "sample": "250 000 — 300 000 ₽/мес на руки"
+    },
+    "salary_hidden": {
+        "field_name": "salary_hidden",
+        "description": "Признак скрытой зарплаты",
+        "type": "bool",
+        "sample": False
+    },
+    "salary_display_from": {
+        "field_name": "salary_display_from",
+        "description": "Минимальное значение зарплаты",
+        "type": "float",
+        "sample": 250000.0
+    },
+    "salary_display_to": {
+        "field_name": "salary_display_to",
+        "description": "Максимальное значение зарплаты",
+        "type": "float",
+        "sample": 300000.0
+    },
+    "salary_currency": {
+        "field_name": "salary_currency",
+        "description": "Валюта зарплаты",
+        "type": "string",
+        "sample": "₽"
+    },
+    "salary_taxes": {
+        "field_name": "salary_taxes",
+        "description": "Тип указания зарплаты (до или после налогов)",
+        "type": "string",
+        "sample": "net"
+    },
+    "salary_is_total": {
+        "field_name": "salary_is_total",
+        "description": "Признак совокупного дохода",
+        "type": "bool",
+        "sample": False
+    },
+    "salary_by_our_version": {
+        "field_name": "salary_by_our_version",
+        "description": "Зарплата рассчитана или уточнена внутренней системой",
+        "type": "bool",
+        "sample": True
+    },
+    "locations": {
+        "field_name": "locations",
+        "description": "Набор допустимых форматов работы и регионов",
+        "type": "list[string]",
+        "sample": ["moscow", "remote"]
+    },
+    "display_locations": {
+        "field_name": "display_locations",
+        "description": "Структурированные данные о локациях для отображения",
+        "type": "list[object]",
+        "sample": [{"city": "Москва", "metro": "м. Киевская", "country": "Россия"}]
+    },
+    "city": {
+        "field_name": "city",
+        "description": "Город или список городов размещения вакансии",
+        "type": "string",
+        "sample": "Москва"
+    },
+    "country": {
+        "field_name": "country",
+        "description": "Страна размещения вакансии",
+        "type": "string",
+        "sample": "Россия"
+    },
+    "location_details": {
+        "field_name": "location_details",
+        "description": "Дополнительная информация о локации (метро, офис)",
+        "type": "string",
+        "sample": "м. Павелецкая"
+    },
+    "remote_options": {
+        "field_name": "remote_options",
+        "description": "Ограничения по удалённой работе",
+        "type": "string",
+        "sample": "anywhere"
+    },
+    "office_options": {
+        "field_name": "office_options",
+        "description": "Формат работы в офисе",
+        "type": "string",
+        "sample": "few_days"
+    },
+    "relocation_options": {
+        "field_name": "relocation_options",
+        "description": "Варианты релокации",
+        "type": "list[string]",
+        "sample": ["company"]
+    },
+    "stack": {
+        "field_name": "stack",
+        "description": "Список технологий и инструментов, может быть пустым",
+        "type": "list[string]",
+        "sample": ["Python", "SQL", "Kafka"]
+    },
+    "stack_description": {
+        "field_name": "stack_description",
+        "description": "Расширенное HTML-описание технологического стека",
+        "type": "string",
+        "sample": "<ul><li>Python</li><li>Kafka</li></ul>"
+    },
+    "team_size": {
+        "field_name": "team_size",
+        "description": "Размер команды",
+        "type": "string",
+        "sample": "6 - 10"
+    },
+    "url": {
+        "field_name": "url",
+        "description": "Относительный URL вакансии на сайте",
+        "type": "string",
+        "sample": "/vacancies/20000-senior-data-engineer"
+    },
+    "description_html": {
+        "field_name": "description_html",
+        "description": "HTML-блоки промо-описаний (ивенты, быстрые офферы)",
+        "type": "string",
+        "sample": "<div class='row'>...</div>"
+    }
+}
