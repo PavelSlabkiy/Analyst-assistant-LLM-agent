@@ -21,7 +21,7 @@
         "field_name": "is_active",
         "description": "Признак активности вакансии",
         "type": "bool",
-        "sample": True
+        "sample": "True"
     },
     "type": {
         "field_name": "type",
@@ -81,7 +81,7 @@
         "field_name": "salary_hidden",
         "description": "Признак скрытой зарплаты",
         "type": "bool",
-        "sample": False
+        "sample": "False"
     },
     "salary_display_from": {
         "field_name": "salary_display_from",
@@ -111,13 +111,13 @@
         "field_name": "salary_is_total",
         "description": "Признак совокупного дохода",
         "type": "bool",
-        "sample": False
+        "sample": "False"
     },
     "salary_by_our_version": {
         "field_name": "salary_by_our_version",
         "description": "Зарплата рассчитана или уточнена внутренней системой",
         "type": "bool",
-        "sample": True
+        "sample": "True"
     },
     "locations": {
         "field_name": "locations",
