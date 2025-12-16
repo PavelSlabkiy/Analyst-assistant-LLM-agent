@@ -4,13 +4,23 @@ Generates and executes Python code for data analysis based on user prompts.
 """
 import io
 import traceback
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 import matplotlib.pyplot as plt
 from openai import OpenAI
+
+
+@dataclass
+class AssistantResponse:
+    """Response from the assistant containing text and optional attachments."""
+    text: str
+    image_bytes: Optional[bytes] = None
+    xlsx_bytes: Optional[bytes] = None
+    xlsx_filename: str = "data_export.xlsx"
 
 
 class LLMAnalystAssistant:
@@ -46,7 +56,7 @@ class LLMAnalystAssistant:
         )
         self.metadata = metadata
 
-    def ask(self, user_prompt: str) -> Tuple[str, Optional[bytes]]:
+    def ask(self, user_prompt: str) -> AssistantResponse:
         """
         Process a user's question and return an answer.
         
@@ -54,7 +64,7 @@ class LLMAnalystAssistant:
             user_prompt: The user's question in natural language
             
         Returns:
-            Tuple of (text_response, image_bytes or None)
+            AssistantResponse with text and optional image/xlsx attachments
         """
         if self.verbose:
             print("\n[USER]", user_prompt)
@@ -91,7 +101,7 @@ class LLMAnalystAssistant:
                 print("\n[CODE TO EXECUTE]")
                 print(code)
 
-            result, image_bytes = self._run_with_repair_loop(
+            result = self._run_with_repair_loop(
                 initial_code=code,
                 messages=messages,
                 max_iterations=3,
@@ -99,19 +109,19 @@ class LLMAnalystAssistant:
 
             if self.verbose:
                 print("\n[RESULT]")
-                print(result)
+                print(result.text)
 
-            return str(result), image_bytes
+            return result
 
         # Plain text response
-        return content, None
+        return AssistantResponse(text=content)
 
     def _run_with_repair_loop(
         self,
         initial_code: str,
         messages: list,
         max_iterations: int = 3,
-    ) -> Tuple[Any, Optional[bytes]]:
+    ) -> AssistantResponse:
         """
         Execute code with automatic error repair loop.
         
@@ -121,7 +131,7 @@ class LLMAnalystAssistant:
             max_iterations: Maximum repair attempts
             
         Returns:
-            Tuple of (result, image_bytes or None)
+            AssistantResponse with results
         """
         code = initial_code
 
@@ -132,6 +142,7 @@ class LLMAnalystAssistant:
                     "df": self.df,
                     "pd": pd,
                     "plt": plt,
+                    "io": io,
                     "__builtins__": __builtins__,
                 }
 
@@ -145,10 +156,24 @@ class LLMAnalystAssistant:
 
                 result = namespace["result"]
                 
+                # Check if result is a DataFrame (for xlsx export)
+                xlsx_bytes = None
+                xlsx_filename = "data_export.xlsx"
+                if isinstance(result, pd.DataFrame):
+                    xlsx_bytes, xlsx_filename = self._create_xlsx(result)
+                    text_result = f"Таблица с {len(result)} строками готова к скачиванию"
+                else:
+                    text_result = str(result)
+                
                 # Check if a plot was created
                 image_bytes = self._capture_plot()
 
-                return result, image_bytes
+                return AssistantResponse(
+                    text=text_result,
+                    image_bytes=image_bytes,
+                    xlsx_bytes=xlsx_bytes,
+                    xlsx_filename=xlsx_filename,
+                )
 
             except Exception:
                 error_text = traceback.format_exc()
@@ -158,10 +183,12 @@ class LLMAnalystAssistant:
                     print(error_text)
 
                 if iteration == max_iterations - 1:
-                    return (
-                        f"❌ Не удалось выполнить код после {max_iterations} попыток.\n\n"
-                        f"Ошибка: {error_text}"
-                    ), None
+                    return AssistantResponse(
+                        text=(
+                            "🤔 К сожалению, бот пока не знает ответа на этот вопрос.\n\n"
+                            "Попробуйте переформулировать запрос или задать другой вопрос."
+                        )
+                    )
 
                 # Ask the model to fix the code
                 messages.append(
@@ -197,7 +224,34 @@ class LLMAnalystAssistant:
                     print("\n[REPAIRED CODE]")
                     print(code)
 
-        return "Unexpected error in repair loop", None
+        return AssistantResponse(
+            text=(
+                "🤔 К сожалению, бот пока не знает ответа на этот вопрос.\n\n"
+                "Попробуйте переформулировать запрос или задать другой вопрос."
+            )
+        )
+
+    def _create_xlsx(self, df: pd.DataFrame) -> tuple[bytes, str]:
+        """
+        Create an Excel file from a DataFrame.
+        
+        Args:
+            df: DataFrame to export
+            
+        Returns:
+            Tuple of (xlsx bytes, filename)
+        """
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Данные')
+        buf.seek(0)
+        
+        # Generate filename based on columns
+        cols = '_'.join(df.columns[:2].tolist())[:30] if len(df.columns) > 0 else 'data'
+        cols = ''.join(c if c.isalnum() or c == '_' else '_' for c in cols)
+        filename = f"{cols}_export.xlsx"
+        
+        return buf.getvalue(), filename
 
     def _capture_plot(self) -> Optional[bytes]:
         """
@@ -226,25 +280,34 @@ class LLMAnalystAssistant:
 
 ПРАВИЛА (СТРОГО):
 
-1. Если вопрос требует вычислений или агрегаций:
-   - Верни ТОЛЬКО Python-код
-   - Без объяснений
-   - Используй df
-   - Сохрани результат в переменную `result`
-   - Формат для кода:
+1. Если вопрос требует ОДНОГО числа (среднее, медиана, количество, сумма):
+   - Верни Python-код, где result = число или строка с числом
+   - Пример: result = df['salary_display_from'].mean()
+
+2. Если нужно построить ГРАФИК (слова: график, диаграмма, визуализация, покажи на графике):
+   - Используй matplotlib (plt)
+   - Настрой шрифты: plt.rcParams['font.family'] = 'DejaVu Sans'
+   - Добавь заголовок и подписи осей
+   - Используй plt.figure(figsize=(10, 6))
+   - result = "График построен"
+
+3. Если нужна ТАБЛИЦА, ВЫГРУЗКА, ЭКСПОРТ, СПИСОК, ДИНАМИКА, ТОП (без графика):
+   - Слова-триггеры: таблица, выгрузи, экспорт, список, покажи данные, топ-N, динамика, по месяцам, по дням
+   - result должен быть DataFrame (pd.DataFrame)
+   - Пример: result = df[['position', 'salary_display_from']].head(10)
+   - Пример: result = df.groupby('city').agg({{'salary_display_from': 'mean'}}).reset_index()
+
+4. Если вычисления не нужны — верни текст без кода.
+
+ФОРМАТ КОДА:
 ```python
 <твой код>```
 
-2. Если нужно построить график:
-   - Используй matplotlib (plt)
-   - Настрой русские шрифты: plt.rcParams['font.family'] = 'DejaVu Sans'
-   - Добавь заголовок и подписи осей
-   - Используй plt.figure(figsize=(10, 6)) для читаемости
-   - result = "График построен"
-
-3. Если вычисления не нужны — верни текст.
-
-4. Для числовых результатов — форматируй красиво (разделители тысяч, округление).
+ВАЖНО:
+- Всегда сохраняй результат в переменную `result`
+- Для таблиц: result = DataFrame
+- Для чисел: result = число или f-строка
+- Для графиков: result = "График построен"
 """
 
     def _build_metadata(self) -> str:
