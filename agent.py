@@ -23,11 +23,30 @@ class AssistantResponse:
     xlsx_filename: str = "data_export.xlsx"
 
 
+@dataclass
+class ExecutionResult:
+    """Internal result from code execution."""
+    raw_result: Any
+    result_type: str  # "number", "chart", "table", "text"
+    code: str = ""
+    image_bytes: Optional[bytes] = None
+    xlsx_bytes: Optional[bytes] = None
+    xlsx_filename: str = "data_export.xlsx"
+    dataframe_info: str = ""  # Info about DataFrame columns/rows
+    success: bool = True
+    error_message: str = ""
+
+
 class LLMAnalystAssistant:
     """
     An AI-powered analytics assistant that interprets natural language queries
     and executes Python code for data analysis.
     """
+    
+    # Model for code generation
+    CODE_MODEL = "kwaipilot/kat-coder-pro:free"
+    # Model for natural language response formatting
+    FORMATTER_MODEL = "google/gemma-3-4b-it:free"
     
     def __init__(
         self,
@@ -35,6 +54,7 @@ class LLMAnalystAssistant:
         openrouter_api_key: str,
         metadata: Dict,
         model: str = "kwaipilot/kat-coder-pro:free",
+        formatter_model: str = "google/gemma-3-4b-it:free",
         verbose: bool = False,
     ):
         """
@@ -44,11 +64,13 @@ class LLMAnalystAssistant:
             df: The pandas DataFrame to analyze
             openrouter_api_key: API key for OpenRouter
             metadata: Dictionary describing the DataFrame structure
-            model: LLM model identifier
+            model: LLM model for code generation
+            formatter_model: LLM model for response formatting
             verbose: Whether to print debug information
         """
         self.df = df
         self.model = model
+        self.formatter_model = formatter_model
         self.verbose = verbose
         self.client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -101,27 +123,108 @@ class LLMAnalystAssistant:
                 print("\n[CODE TO EXECUTE]")
                 print(code)
 
-            result = self._run_with_repair_loop(
+            exec_result = self._run_with_repair_loop(
                 initial_code=code,
                 messages=messages,
                 max_iterations=3,
             )
 
+            # Format the response using the formatter model
+            formatted_text = self._format_response(user_prompt, exec_result)
+
             if self.verbose:
-                print("\n[RESULT]")
-                print(result.text)
+                print("\n[FORMATTED RESULT]")
+                print(formatted_text)
 
-            return result
+            return AssistantResponse(
+                text=formatted_text,
+                image_bytes=exec_result.image_bytes,
+                xlsx_bytes=exec_result.xlsx_bytes,
+                xlsx_filename=exec_result.xlsx_filename,
+            )
 
-        # Plain text response
+        # Plain text response - still format it nicely
         return AssistantResponse(text=content)
+
+    def _format_response(self, user_question: str, exec_result: ExecutionResult) -> str:
+        """
+        Format the execution result into a natural language response.
+        
+        Args:
+            user_question: Original user question
+            exec_result: Result from code execution
+            
+        Returns:
+            Formatted natural language response
+        """
+        if not exec_result.success:
+            return exec_result.error_message
+        
+        # Build MINIMAL context for the formatter (avoid token overflow)
+        if exec_result.result_type == "number":
+            context = f"Вопрос: {user_question}\nРезультат: {exec_result.raw_result}"
+        elif exec_result.result_type == "chart":
+            context = f"Вопрос: {user_question}"
+        elif exec_result.result_type == "table":
+            context = f"Вопрос: {user_question}\nТаблица: {exec_result.dataframe_info}"
+        else:
+            return str(exec_result.raw_result)
+
+        # Create formatting prompt
+        format_prompt = self._get_formatter_prompt(exec_result.result_type)
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.formatter_model,
+                messages=[
+                    {"role": "system", "content": format_prompt},
+                    {"role": "user", "content": context},
+                ],
+                temperature=0.3,
+                max_tokens=200,  # Limit output tokens
+                stream=False,
+            )
+            
+            formatted = response.choices[0].message.content.strip()
+            
+            if self.verbose:
+                print("\n[FORMATTER RESPONSE]")
+                print(formatted)
+            
+            return formatted
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"\n[FORMATTER ERROR] {e}")
+            # Fallback to raw result if formatting fails
+            return str(exec_result.raw_result)
+
+    def _get_formatter_prompt(self, result_type: str) -> str:
+        """Get the system prompt for the formatter based on result type."""
+        
+        if result_type == "number":
+            return """Сформулируй ответ на русском (1-2 предложения).
+Форматируй числа: пробелы в тысячах (150 000), проценты (0.15→15%), зарплаты в ₽.
+Пример: "Средняя зарплата составляет 185 000 ₽." """
+
+        elif result_type == "chart":
+            return """Опиши построенный график на русском (1-2 предложения).
+Укажи тип графика и что визуализировано. Добавь emoji 📊 или 📈.
+Пример: "📊 Построена диаграмма зарплат по городам." """
+
+        elif result_type == "table":
+            return """Опиши выгрузку на русском (1-2 предложения).
+Укажи кол-во строк и основные колонки. Упомяни Excel. Добавь emoji 📋.
+Пример: "📋 Выгружено 10 вакансий (позиция, зарплата, город). Excel прикреплён." """
+
+        return "Ответь кратко на русском."
 
     def _run_with_repair_loop(
         self,
         initial_code: str,
         messages: list,
         max_iterations: int = 3,
-    ) -> AssistantResponse:
+    ) -> ExecutionResult:
         """
         Execute code with automatic error repair loop.
         
@@ -131,7 +234,7 @@ class LLMAnalystAssistant:
             max_iterations: Maximum repair attempts
             
         Returns:
-            AssistantResponse with results
+            ExecutionResult with results
         """
         code = initial_code
 
@@ -156,23 +259,32 @@ class LLMAnalystAssistant:
 
                 result = namespace["result"]
                 
-                # Check if result is a DataFrame (for xlsx export)
+                # Determine result type and process accordingly
+                image_bytes = self._capture_plot()
                 xlsx_bytes = None
                 xlsx_filename = "data_export.xlsx"
-                if isinstance(result, pd.DataFrame):
-                    xlsx_bytes, xlsx_filename = self._create_xlsx(result)
-                    text_result = f"Таблица с {len(result)} строками готова к скачиванию"
-                else:
-                    text_result = str(result)
+                dataframe_info = ""
                 
-                # Check if a plot was created
-                image_bytes = self._capture_plot()
+                if isinstance(result, pd.DataFrame):
+                    result_type = "table"
+                    xlsx_bytes, xlsx_filename = self._create_xlsx(result)
+                    dataframe_info = f"{len(result)} строк, колонки: {', '.join(result.columns.tolist()[:10])}"
+                elif image_bytes:
+                    result_type = "chart"
+                elif isinstance(result, (int, float)) or (isinstance(result, str) and any(c.isdigit() for c in result)):
+                    result_type = "number"
+                else:
+                    result_type = "text"
 
-                return AssistantResponse(
-                    text=text_result,
+                return ExecutionResult(
+                    raw_result=result,
+                    result_type=result_type,
+                    code=code,
                     image_bytes=image_bytes,
                     xlsx_bytes=xlsx_bytes,
                     xlsx_filename=xlsx_filename,
+                    dataframe_info=dataframe_info,
+                    success=True,
                 )
 
             except Exception:
@@ -183,11 +295,14 @@ class LLMAnalystAssistant:
                     print(error_text)
 
                 if iteration == max_iterations - 1:
-                    return AssistantResponse(
-                        text=(
+                    return ExecutionResult(
+                        raw_result=None,
+                        result_type="error",
+                        success=False,
+                        error_message=(
                             "🤔 К сожалению, бот пока не знает ответа на этот вопрос.\n\n"
                             "Попробуйте переформулировать запрос или задать другой вопрос."
-                        )
+                        ),
                     )
 
                 # Ask the model to fix the code
@@ -224,11 +339,14 @@ class LLMAnalystAssistant:
                     print("\n[REPAIRED CODE]")
                     print(code)
 
-        return AssistantResponse(
-            text=(
+        return ExecutionResult(
+            raw_result=None,
+            result_type="error",
+            success=False,
+            error_message=(
                 "🤔 К сожалению, бот пока не знает ответа на этот вопрос.\n\n"
                 "Попробуйте переформулировать запрос или задать другой вопрос."
-            )
+            ),
         )
 
     def _create_xlsx(self, df: pd.DataFrame) -> tuple[bytes, str]:

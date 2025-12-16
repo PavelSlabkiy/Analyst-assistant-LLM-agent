@@ -21,6 +21,7 @@ class Config:
     
     # LLM Settings
     LLM_MODEL: str = os.getenv("LLM_MODEL", "kwaipilot/kat-coder-pro:free")
+    LLM_FORMATTER_MODEL: str = os.getenv("LLM_FORMATTER_MODEL", "google/gemma-3-4b-it:free")
     
     # Data paths
     DATA_PATH: str = os.getenv("DATA_PATH", "data.json")

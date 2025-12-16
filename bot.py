@@ -164,7 +164,8 @@ async def handle_question(message: Message) -> None:
             if len(safe_text) > 4000:
                 safe_text = safe_text[:4000] + "\n\n... (ответ обрезан)"
             
-            await message.answer(f"📋 <b>Результат:</b>\n\n<code>{safe_text}</code>", parse_mode=ParseMode.HTML)
+            # Send as plain text (natural language response)
+            await message.answer(safe_text, parse_mode=ParseMode.HTML)
         
         # Send the image if one was generated
         if response.image_bytes:
@@ -213,6 +214,7 @@ async def main() -> None:
         openrouter_api_key=config.OPENROUTER_API_KEY,
         metadata=metadata,
         model=config.LLM_MODEL,
+        formatter_model=config.LLM_FORMATTER_MODEL,
         verbose=True,
     )
     
