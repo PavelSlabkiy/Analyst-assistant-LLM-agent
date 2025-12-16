@@ -1,0 +1,18 @@
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+
+# LLM and API
+openai>=1.0.0
+
+# Telegram bot
+aiogram>=3.0.0
+
+# Data visualization
+matplotlib>=3.7.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Data download from Google Drive
+gdown>=4.7.0
