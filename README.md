@@ -122,15 +122,15 @@ python bot.py
 flowchart TD
     U[Пользователь в Telegram] -->|вопрос| B[bot.py]
     B -->|данные, metadata| A[LLMAnalystAssistant.ask]
-    A -->|system + user msg| L1[LLM (LLM_MODEL)\nгенерация кода]
-    L1 -->|python code| R[Распознаём тип: число/таблица/график]
-    R -->|exec| EXE[Выполнение кода\n+ матплотлиб + pandas]
+    A -->|system + user msg| L1[LLM_MODEL<br/>генерация кода]
+    L1 -->|python code| R[Распознаём тип<br/>число/таблица/график]
+    R -->|exec| EXE[Выполнение кода<br/>matplotlib + pandas]
     EXE -->|ошибка?| ERR{Ошибка?}
-    ERR -->|да| FIX[Repair loop до 3 раз\n(LLM_MODEL)]
+    ERR -->|да| FIX[Repair loop до 3 раз<br/>LLM_MODEL]
     FIX --> R
-    ERR -->|нет| RES[Результат\nчисло/PNG/Excel]
-    RES --> FMT[LLM_FORMATTER_MODEL\nделает пояснение]
-    FMT --> OUT[Ответ в Telegram\n+ текст + PNG/Excel]
+    ERR -->|нет| RES[Результат<br/>число / PNG / Excel]
+    RES --> FMT[LLM_FORMATTER_MODEL<br/>делает пояснение]
+    FMT --> OUT[Ответ в Telegram<br/>текст + PNG/Excel]
 ```
 
 ## 📁 Структура проекта
