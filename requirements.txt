@@ -5,7 +5,7 @@ numpy>=1.24.0
 # LLM and API
 openai>=1.0.0
 
-# Telegram bot
+# Telegram bots
 aiogram>=3.0.0
 
 # Data visualization
