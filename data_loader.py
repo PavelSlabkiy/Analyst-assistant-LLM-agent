@@ -1,5 +1,5 @@
 """
-Data loading module for the analytics assistant.
+Модуль загрузки данных для аналитического ассистента.
 """
 import json
 import re
@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 
-# Columns to drop during preprocessing
+# Колонки для удаления при предобработке
 COLUMNS_TO_DROP = [
     "type", 
     "offer_type", 
@@ -64,7 +64,7 @@ COLUMNS_TO_DROP = [
     "company.short_description",
 ]
 
-# Currency exchange rates to RUB
+# Курсы валют к рублю
 CURRENCY_RATES = {
     '₽': 1,
     '$': 80,
@@ -77,14 +77,14 @@ def download_data_from_gdrive(
     output_path: str = "data.json"
 ) -> bool:
     """
-    Download data from Google Drive using gdown.
+    Скачивание данных с Google Drive с помощью gdown.
     
-    Args:
-        url: Google Drive file URL
-        output_path: Path to save the downloaded file
+    Аргументы:
+        url: URL файла на Google Drive
+        output_path: Путь для сохранения скачанного файла
         
-    Returns:
-        True if download successful, False otherwise
+    Возвращает:
+        True если скачивание успешно, иначе False
     """
     try:
         subprocess.run(
@@ -92,28 +92,28 @@ def download_data_from_gdrive(
             check=True,
             capture_output=True
         )
-        print(f"✅ Data downloaded successfully to {output_path}")
+        print(f"✅ Данные успешно скачаны в {output_path}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to download data: {e}")
+        print(f"❌ Не удалось скачать данные: {e}")
         return False
     except FileNotFoundError:
-        print("❌ gdown not found. Install it with: pip install gdown")
+        print("❌ gdown не найден. Установите его командой: pip install gdown")
         return False
 
 
 def calculate_salary_rub(row: pd.Series, rates: dict = CURRENCY_RATES) -> float:
     """
-    Calculate salary in RUB from various salary fields.
+    Расчёт зарплаты в рублях из различных полей.
     
-    Args:
-        row: DataFrame row with salary fields
-        rates: Currency exchange rates dictionary
+    Аргументы:
+        row: Строка DataFrame с полями зарплаты
+        rates: Словарь курсов валют
         
-    Returns:
-        Salary in RUB or NaN
+    Возвращает:
+        Зарплата в рублях или NaN
     """
-    # 1. Determine salary value
+    # 1. Определяем значение зарплаты
     frm = row.get('salary_display_from')
     to = row.get('salary_display_to')
 
@@ -124,7 +124,7 @@ def calculate_salary_rub(row: pd.Series, rates: dict = CURRENCY_RATES) -> float:
     elif pd.notna(to):
         salary = to
     else:
-        # Try to parse from salary_description
+        # Пытаемся распарсить из salary_description
         text = row.get('salary_description')
         if pd.isna(text):
             return np.nan
@@ -135,7 +135,7 @@ def calculate_salary_rub(row: pd.Series, rates: dict = CURRENCY_RATES) -> float:
         
         salary = int(match.group(1).replace(' ', ''))
 
-    # 2. Determine currency
+    # 2. Определяем валюту
     currency = row.get('salary_currency')
 
     if pd.isna(currency):
@@ -149,7 +149,7 @@ def calculate_salary_rub(row: pd.Series, rates: dict = CURRENCY_RATES) -> float:
         
         currency = cur_match.group(1)
 
-    # 3. Convert to RUB
+    # 3. Конвертируем в рубли
     rate = rates.get(currency)
     if rate is None:
         return np.nan
@@ -159,107 +159,107 @@ def calculate_salary_rub(row: pd.Series, rates: dict = CURRENCY_RATES) -> float:
 
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Clean and preprocess the DataFrame.
+    Очистка и предобработка DataFrame.
     
-    Args:
-        df: Raw DataFrame
+    Аргументы:
+        df: Исходный DataFrame
         
-    Returns:
-        Preprocessed DataFrame
+    Возвращает:
+        Обработанный DataFrame
     """
-    # Drop columns that exist in the dataframe
+    # Удаляем колонки, которые существуют в датафрейме
     cols_to_drop = [col for col in COLUMNS_TO_DROP if col in df.columns]
     if cols_to_drop:
         df = df.drop(columns=cols_to_drop)
-        print(f"  ↳ Dropped {len(cols_to_drop)} unnecessary columns")
+        print(f"  ↳ Удалено {len(cols_to_drop)} ненужных колонок")
     
-    # Calculate salary in RUB
+    # Рассчитываем зарплату в рублях
     salary_cols = ['salary_display_from', 'salary_display_to', 'salary_description', 'salary_currency']
     if all(col in df.columns for col in ['salary_display_from', 'salary_display_to']):
-        print("  ↳ Calculating salary in RUB...")
+        print("  ↳ Расчёт зарплаты в рублях...")
         df['salary'] = df.apply(calculate_salary_rub, axis=1)
         
-        # Drop original salary columns
+        # Удаляем исходные колонки зарплаты
         salary_cols_to_drop = [col for col in salary_cols if col in df.columns]
         df = df.drop(columns=salary_cols_to_drop)
-        print(f"  ↳ Created 'salary' column, dropped {len(salary_cols_to_drop)} original salary columns")
+        print(f"  ↳ Создана колонка 'salary', удалено {len(salary_cols_to_drop)} исходных колонок зарплаты")
     
     return df
 
 
 def load_data(data_path: str = "data.json") -> Optional[pd.DataFrame]:
     """
-    Load and preprocess the JSON data into a pandas DataFrame.
+    Загрузка и предобработка JSON-данных в pandas DataFrame.
     
-    Args:
-        data_path: Path to the JSON data file
+    Аргументы:
+        data_path: Путь к JSON-файлу с данными
         
-    Returns:
-        Preprocessed DataFrame or None if loading fails
+    Возвращает:
+        Обработанный DataFrame или None при ошибке загрузки
     """
     path = Path(data_path)
     
     if not path.exists():
-        print(f"⚠️ Data file not found at {data_path}")
-        print("Attempting to download from Google Drive...")
+        print(f"⚠️ Файл данных не найден: {data_path}")
+        print("Попытка скачать с Google Drive...")
         
         if not download_data_from_gdrive(output_path=data_path):
             return None
     
     try:
-        print(f"📂 Loading data from {data_path}...")
+        print(f"📂 Загрузка данных из {data_path}...")
         data = pd.read_json(path)
         data = pd.json_normalize(data['data'])
         data = data.dropna(axis=1, how="all")
-        print(f"  ↳ Loaded {len(data)} records, {len(data.columns)} columns")
+        print(f"  ↳ Загружено {len(data)} записей, {len(data.columns)} колонок")
         
-        # Apply preprocessing
-        print("🔧 Preprocessing data...")
+        # Применяем предобработку
+        print("🔧 Предобработка данных...")
         data = preprocess_data(data)
         
-        print(f"✅ Final dataset: {len(data)} records, {len(data.columns)} columns")
+        print(f"✅ Итоговый датасет: {len(data)} записей, {len(data.columns)} колонок")
         return data
         
     except Exception as e:
-        print(f"❌ Error loading data: {e}")
+        print(f"❌ Ошибка загрузки данных: {e}")
         return None
 
 
 def load_metadata(metadata_path: str = "metadata.json") -> Optional[Dict]:
     """
-    Load metadata from JSON file.
+    Загрузка метаданных из JSON-файла.
     
-    Args:
-        metadata_path: Path to the metadata JSON file
+    Аргументы:
+        metadata_path: Путь к JSON-файлу с метаданными
         
-    Returns:
-        Metadata dictionary or None if loading fails
+    Возвращает:
+        Словарь метаданных или None при ошибке загрузки
     """
     path = Path(metadata_path)
     
     if not path.exists():
-        print(f"❌ Metadata file not found at {metadata_path}")
+        print(f"❌ Файл метаданных не найден: {metadata_path}")
         return None
     
     try:
         with open(path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
-        print(f"✅ Loaded metadata with {len(metadata)} fields")
+        print(f"✅ Загружены метаданные: {len(metadata)} полей")
         return metadata
     except Exception as e:
-        print(f"❌ Error loading metadata: {e}")
+        print(f"❌ Ошибка загрузки метаданных: {e}")
         return None
 
 
 if __name__ == "__main__":
-    # Test data loading
+    # Тестирование загрузки данных
     df = load_data()
     if df is not None:
-        print(f"\nDataFrame shape: {df.shape}")
-        print(f"Columns: {list(df.columns)}")
-        print(f"\nSalary stats:")
+        print(f"\nРазмер DataFrame: {df.shape}")
+        print(f"Колонки: {list(df.columns)}")
+        print(f"\nСтатистика по зарплатам:")
         print(df['salary'].describe())
     
     metadata = load_metadata()
     if metadata is not None:
-        print(f"\nMetadata fields: {list(metadata.keys())}")
+        print(f"\nПоля метаданных: {list(metadata.keys())}")

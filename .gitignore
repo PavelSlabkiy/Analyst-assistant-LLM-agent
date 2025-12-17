@@ -44,7 +44,7 @@ ENV/
 .LSOverride
 ._*
 
-# Data files (large, downloaded separately)
+# Data files
 data.json
 
 # Logs

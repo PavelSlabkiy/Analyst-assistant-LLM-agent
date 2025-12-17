@@ -1,46 +1,46 @@
 """
-Configuration module for loading environment variables.
+Модуль конфигурации для загрузки переменных окружения.
 """
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Загружаем переменные окружения из файла .env
 env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
 
 class Config:
-    """Application configuration."""
+    """Конфигурация приложения."""
     
     # OpenRouter API
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
     
-    # Telegram Bot
+    # Telegram-бот
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     
-    # LLM Settings
+    # Настройки LLM
     LLM_MODEL: str = os.getenv("LLM_MODEL", "kwaipilot/kat-coder-pro:free")
     LLM_FORMATTER_MODEL: str = os.getenv("LLM_FORMATTER_MODEL", "google/gemma-3-4b-it:free")
     
-    # Data paths
+    # Пути к файлам данных
     DATA_PATH: str = os.getenv("DATA_PATH", "data.json")
     METADATA_PATH: str = os.getenv("METADATA_PATH", "metadata.json")
     
     @classmethod
     def validate(cls) -> bool:
-        """Validate that all required configuration is present."""
+        """Проверка наличия всех обязательных параметров конфигурации."""
         errors = []
         
         if not cls.OPENROUTER_API_KEY:
-            errors.append("OPENROUTER_API_KEY is not set")
+            errors.append("OPENROUTER_API_KEY не установлен")
         
         if not cls.TELEGRAM_BOT_TOKEN:
-            errors.append("TELEGRAM_BOT_TOKEN is not set")
+            errors.append("TELEGRAM_BOT_TOKEN не установлен")
         
         if errors:
             for error in errors:
-                print(f"❌ Config Error: {error}")
+                print(f"❌ Ошибка конфигурации: {error}")
             return False
         
         return True

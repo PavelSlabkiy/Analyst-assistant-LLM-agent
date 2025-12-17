@@ -81,7 +81,7 @@
         "field_name": "display_locations",
         "description": "Структурированные данные о локациях для отображения",
         "type": "list[object]",
-        "sample": [{"city": "Москва", "metro": "м. Киевская", "country": "Россия"}]
+        "sample": [{"city": "Москва", "metro": "м. Павелецкая", "country": "Россия"}]
     },
     "city": {
         "field_name": "city",

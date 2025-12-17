@@ -1,6 +1,6 @@
 """
-LLM Analytics Assistant module.
-Generates and executes Python code for data analysis based on user prompts.
+Модуль LLM-ассистента для аналитики.
+Генерирует и выполняет Python-код для анализа данных на основе запросов пользователя.
 """
 import io
 import traceback
@@ -9,14 +9,14 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend for server environments
+matplotlib.use('Agg')  # Используем неинтерактивный бэкенд для серверного окружения
 import matplotlib.pyplot as plt
 from openai import OpenAI
 
 
 @dataclass
 class AssistantResponse:
-    """Response from the assistant containing text and optional attachments."""
+    """Ответ ассистента с текстом и опциональными вложениями."""
     text: str
     image_bytes: Optional[bytes] = None
     xlsx_bytes: Optional[bytes] = None
@@ -25,27 +25,27 @@ class AssistantResponse:
 
 @dataclass
 class ExecutionResult:
-    """Internal result from code execution."""
+    """Внутренний результат выполнения кода."""
     raw_result: Any
     result_type: str  # "number", "chart", "table", "text"
     code: str = ""
     image_bytes: Optional[bytes] = None
     xlsx_bytes: Optional[bytes] = None
     xlsx_filename: str = "data_export.xlsx"
-    dataframe_info: str = ""  # Info about DataFrame columns/rows
+    dataframe_info: str = ""  # Информация о колонках/строках DataFrame
     success: bool = True
     error_message: str = ""
 
 
 class LLMAnalystAssistant:
     """
-    An AI-powered analytics assistant that interprets natural language queries
-    and executes Python code for data analysis.
+    ИИ-ассистент для аналитики, который интерпретирует запросы на естественном языке
+    и выполняет Python-код для анализа данных.
     """
     
-    # Model for code generation
+    # Модель для генерации кода
     CODE_MODEL = "kwaipilot/kat-coder-pro:free"
-    # Model for natural language response formatting
+    # Модель для форматирования ответов на естественном языке
     FORMATTER_MODEL = "google/gemma-3-4b-it:free"
     
     def __init__(
@@ -58,15 +58,15 @@ class LLMAnalystAssistant:
         verbose: bool = False,
     ):
         """
-        Initialize the analytics assistant.
+        Инициализация аналитического ассистента.
         
-        Args:
-            df: The pandas DataFrame to analyze
-            openrouter_api_key: API key for OpenRouter
-            metadata: Dictionary describing the DataFrame structure
-            model: LLM model for code generation
-            formatter_model: LLM model for response formatting
-            verbose: Whether to print debug information
+        Аргументы:
+            df: pandas DataFrame для анализа
+            openrouter_api_key: API-ключ для OpenRouter
+            metadata: Словарь с описанием структуры DataFrame
+            model: Модель LLM для генерации кода
+            formatter_model: Модель LLM для форматирования ответов
+            verbose: Выводить ли отладочную информацию
         """
         self.df = df
         self.model = model
@@ -80,16 +80,16 @@ class LLMAnalystAssistant:
 
     def ask(self, user_prompt: str) -> AssistantResponse:
         """
-        Process a user's question and return an answer.
+        Обработка вопроса пользователя и возврат ответа.
         
-        Args:
-            user_prompt: The user's question in natural language
+        Аргументы:
+            user_prompt: Вопрос пользователя на естественном языке
             
-        Returns:
-            AssistantResponse with text and optional image/xlsx attachments
+        Возвращает:
+            AssistantResponse с текстом и опциональными вложениями (изображение/xlsx)
         """
         if self.verbose:
-            print("\n[USER]", user_prompt)
+            print("\n[ПОЛЬЗОВАТЕЛЬ]", user_prompt)
 
         messages = [
             {
@@ -112,15 +112,15 @@ class LLMAnalystAssistant:
         content = response.choices[0].message.content.strip()
 
         if self.verbose:
-            print("\n[LLM RESPONSE]")
+            print("\n[ОТВЕТ LLM]")
             print(content)
 
-        # If LLM returned code
+        # Если LLM вернула код
         if self._looks_like_code(content):
             code = self._extract_code(content)
 
             if self.verbose:
-                print("\n[CODE TO EXECUTE]")
+                print("\n[КОД ДЛЯ ВЫПОЛНЕНИЯ]")
                 print(code)
 
             exec_result = self._run_with_repair_loop(
@@ -129,11 +129,11 @@ class LLMAnalystAssistant:
                 max_iterations=3,
             )
 
-            # Format the response using the formatter model
+            # Форматируем ответ с помощью модели-форматтера
             formatted_text = self._format_response(user_prompt, exec_result)
 
             if self.verbose:
-                print("\n[FORMATTED RESULT]")
+                print("\n[ОТФОРМАТИРОВАННЫЙ РЕЗУЛЬТАТ]")
                 print(formatted_text)
 
             return AssistantResponse(
@@ -143,24 +143,24 @@ class LLMAnalystAssistant:
                 xlsx_filename=exec_result.xlsx_filename,
             )
 
-        # Plain text response - still format it nicely
+        # Текстовый ответ без кода
         return AssistantResponse(text=content)
 
     def _format_response(self, user_question: str, exec_result: ExecutionResult) -> str:
         """
-        Format the execution result into a natural language response.
+        Форматирование результата выполнения в ответ на естественном языке.
         
-        Args:
-            user_question: Original user question
-            exec_result: Result from code execution
+        Аргументы:
+            user_question: Исходный вопрос пользователя
+            exec_result: Результат выполнения кода
             
-        Returns:
-            Formatted natural language response
+        Возвращает:
+            Отформатированный ответ на естественном языке
         """
         if not exec_result.success:
             return exec_result.error_message
         
-        # Build MINIMAL context for the formatter (avoid token overflow)
+        # Собираем МИНИМАЛЬНЫЙ контекст для форматтера (избегаем переполнения токенов)
         if exec_result.result_type == "number":
             context = f"Вопрос: {user_question}\nРезультат: {exec_result.raw_result}"
         elif exec_result.result_type == "chart":
@@ -170,7 +170,7 @@ class LLMAnalystAssistant:
         else:
             return str(exec_result.raw_result)
 
-        # Create formatting prompt
+        # Получаем промпт для форматирования
         format_prompt = self._get_formatter_prompt(exec_result.result_type)
         
         try:
@@ -181,26 +181,26 @@ class LLMAnalystAssistant:
                     {"role": "user", "content": context},
                 ],
                 temperature=0.3,
-                max_tokens=200,  # Limit output tokens
+                max_tokens=200,  # Ограничиваем количество токенов на выходе
                 stream=False,
             )
             
             formatted = response.choices[0].message.content.strip()
             
             if self.verbose:
-                print("\n[FORMATTER RESPONSE]")
+                print("\n[ОТВЕТ ФОРМАТТЕРА]")
                 print(formatted)
             
             return formatted
             
         except Exception as e:
             if self.verbose:
-                print(f"\n[FORMATTER ERROR] {e}")
-            # Fallback to raw result if formatting fails
+                print(f"\n[ОШИБКА ФОРМАТТЕРА] {e}")
+            # Возвращаем сырой результат, если форматирование не удалось
             return str(exec_result.raw_result)
 
     def _get_formatter_prompt(self, result_type: str) -> str:
-        """Get the system prompt for the formatter based on result type."""
+        """Получение системного промпта для форматтера в зависимости от типа результата."""
         
         if result_type == "number":
             return """Сформулируй ответ на русском (1-2 предложения).
@@ -210,11 +210,11 @@ class LLMAnalystAssistant:
         elif result_type == "chart":
             return """Опиши график на русском. 
 Не возвращай данные графика, только опиши какой график построен и какие поля из кода использовались.
-Пример: "📊 Построена диаграмма средних зарплат (salary_display_from) по городам (city)." """
+Пример: "📊 Построена диаграмма средних зарплат (salary) по городам (city)." """
 
         elif result_type == "table":
             return """Опиши выгрузку на русском. Не возвращай данные таблицы, только опиши что выгружено, сколько строк, какие поля из кода использовались.
-Пример: "📋 Выгружено 10 записей с полями position, salary_display_from, city. Excel прикреплён." """
+Пример: "📋 Выгружено 10 записей с полями position, salary, city. Excel прикреплён." """
 
         return "Ответь кратко на русском."
 
@@ -225,21 +225,21 @@ class LLMAnalystAssistant:
         max_iterations: int = 3,
     ) -> ExecutionResult:
         """
-        Execute code with automatic error repair loop.
+        Выполнение кода с автоматическим циклом исправления ошибок.
         
-        Args:
-            initial_code: The initial Python code to execute
-            messages: Conversation history for context
-            max_iterations: Maximum repair attempts
+        Аргументы:
+            initial_code: Исходный Python-код для выполнения
+            messages: История диалога для контекста
+            max_iterations: Максимальное количество попыток исправления
             
-        Returns:
-            ExecutionResult with results
+        Возвращает:
+            ExecutionResult с результатами выполнения
         """
         code = initial_code
 
         for iteration in range(max_iterations):
             try:
-                # Create isolated namespace with necessary imports
+                # Создаём изолированное пространство имён с необходимыми импортами
                 namespace = {
                     "df": self.df,
                     "pd": pd,
@@ -248,17 +248,17 @@ class LLMAnalystAssistant:
                     "__builtins__": __builtins__,
                 }
 
-                # Close any existing figures
+                # Закрываем все существующие графики
                 plt.close('all')
                 
                 exec(code, namespace, namespace)
 
                 if "result" not in namespace:
-                    raise ValueError("Variable `result` not found in code output")
+                    raise ValueError("Переменная `result` не найдена в результате выполнения кода")
 
                 result = namespace["result"]
                 
-                # Determine result type and process accordingly
+                # Определяем тип результата и обрабатываем соответственно
                 image_bytes = self._capture_plot()
                 xlsx_bytes = None
                 xlsx_filename = "data_export.xlsx"
@@ -290,7 +290,7 @@ class LLMAnalystAssistant:
                 error_text = traceback.format_exc()
 
                 if self.verbose:
-                    print(f"\n[ERROR | iteration {iteration + 1}]")
+                    print(f"\n[ОШИБКА | попытка {iteration + 1}]")
                     print(error_text)
 
                 if iteration == max_iterations - 1:
@@ -304,7 +304,7 @@ class LLMAnalystAssistant:
                         ),
                     )
 
-                # Ask the model to fix the code
+                # Просим модель исправить код
                 messages.append(
                     {
                         "role": "assistant",
@@ -335,7 +335,7 @@ class LLMAnalystAssistant:
                 )
 
                 if self.verbose:
-                    print("\n[REPAIRED CODE]")
+                    print("\n[ИСПРАВЛЕННЫЙ КОД]")
                     print(code)
 
         return ExecutionResult(
@@ -350,20 +350,20 @@ class LLMAnalystAssistant:
 
     def _create_xlsx(self, df: pd.DataFrame) -> tuple[bytes, str]:
         """
-        Create an Excel file from a DataFrame.
+        Создание Excel-файла из DataFrame.
         
-        Args:
-            df: DataFrame to export
+        Аргументы:
+            df: DataFrame для экспорта
             
-        Returns:
-            Tuple of (xlsx bytes, filename)
+        Возвращает:
+            Кортеж (байты xlsx-файла, имя файла)
         """
         buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Данные')
         buf.seek(0)
         
-        # Generate filename based on columns
+        # Генерируем имя файла на основе колонок
         cols = '_'.join(df.columns[:2].tolist())[:30] if len(df.columns) > 0 else 'data'
         cols = ''.join(c if c.isalnum() or c == '_' else '_' for c in cols)
         filename = f"{cols}_export.xlsx"
@@ -372,13 +372,13 @@ class LLMAnalystAssistant:
 
     def _capture_plot(self) -> Optional[bytes]:
         """
-        Capture the current matplotlib figure as PNG bytes.
+        Захват текущего графика matplotlib в виде PNG-байтов.
         
-        Returns:
-            PNG image bytes or None if no figure exists
+        Возвращает:
+            PNG-изображение в байтах или None, если график не был создан
         """
         fig = plt.gcf()
-        if fig.get_axes():  # Check if figure has any axes (i.e., a plot was created)
+        if fig.get_axes():  # Проверяем, есть ли у фигуры оси (т.е. был ли создан график)
             buf = io.BytesIO()
             fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
             buf.seek(0)
@@ -387,7 +387,7 @@ class LLMAnalystAssistant:
         return None
 
     def _system_prompt(self, metadata: str) -> str:
-        """Generate the system prompt for the LLM."""
+        """Генерация системного промпта для LLM."""
         return f"""
 Ты — аналитический ассистент по данным о вакансиях и зарплатах.
 
@@ -399,7 +399,7 @@ class LLMAnalystAssistant:
 
 1. Если вопрос требует ОДНОГО числа (среднее, медиана, количество, сумма):
    - Верни Python-код, где result = число или строка с числом
-   - Пример: result = df['salary_display_from'].mean()
+   - Пример: result = df['salary'].mean()
 
 2. Если нужно построить ГРАФИК (слова: график, диаграмма, визуализация, покажи на графике):
    - Используй matplotlib (plt)
@@ -411,8 +411,8 @@ class LLMAnalystAssistant:
 3. Если нужна ТАБЛИЦА, ВЫГРУЗКА, ЭКСПОРТ, СПИСОК, ДИНАМИКА, ТОП (без графика):
    - Слова-триггеры: таблица, выгрузи, экспорт, список, покажи данные, топ-N, динамика, по месяцам, по дням
    - result должен быть DataFrame (pd.DataFrame)
-   - Пример: result = df[['position', 'salary_display_from']].head(10)
-   - Пример: result = df.groupby('city').agg({{'salary_display_from': 'mean'}}).reset_index()
+   - Пример: result = df[['position', 'salary']].head(10)
+   - Пример: result = df.groupby('city').agg({{'salary': 'mean'}}).reset_index()
 
 4. Если вычисления не нужны — верни текст без кода.
 
@@ -428,7 +428,7 @@ class LLMAnalystAssistant:
 """
 
     def _build_metadata(self) -> str:
-        """Build metadata description string from metadata dictionary."""
+        """Формирование строки с описанием метаданных из словаря."""
         lines = ["Структура данных:"]
         for key, value in self.metadata.items():
             lines.append(
@@ -439,20 +439,20 @@ class LLMAnalystAssistant:
 
     @staticmethod
     def _looks_like_code(text: str) -> bool:
-        """Check if the response looks like code."""
+        """Проверка, похож ли ответ на код."""
         return "```" in text
 
     @staticmethod
     def _extract_code(text: str) -> str:
-        """Extract Python code from markdown code blocks."""
-        # Handle ```python ... ``` format
+        """Извлечение Python-кода из markdown-блоков."""
+        # Обработка формата ```python ... ```
         if "```python" in text:
             parts = text.split("```python")
             if len(parts) > 1:
                 code_part = parts[1].split("```")[0]
                 return code_part.strip()
         
-        # Handle ``` ... ``` format
+        # Обработка формата ``` ... ```
         if "```" in text:
             parts = text.split("```")
             if len(parts) >= 2:
