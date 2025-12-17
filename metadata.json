@@ -23,18 +23,6 @@
         "type": "bool",
         "sample": "True"
     },
-    "type": {
-        "field_name": "type",
-        "description": "Канал публикации вакансии",
-        "type": "string",
-        "sample": "web_and_tg"
-    },
-    "offer_type": {
-        "field_name": "offer_type",
-        "description": "Тип предложения (обычная вакансия, однодневный оффер и т.д.)",
-        "type": "string",
-        "sample": "vacancy"
-    },
     "position": {
         "field_name": "position",
         "description": "Название должности/вакансии",
@@ -53,53 +41,17 @@
         "type": "string",
         "sample": "Senior"
     },
-    "offer_description": {
-        "field_name": "offer_description",
-        "description": "Краткое HTML-описание вакансии (что делать, о компании)",
+    "salary": {
+        "field_name": "salary",
+        "description": "Значение зарплаты в рублях, может быть NaN",
         "type": "string",
-        "sample": "<b>Что делать:</b> Развивать аналитическую инфраструктуру..."
-    },
-    "description": {
-        "field_name": "description",
-        "description": "Полное HTML-описание вакансии (обязанности, требования, условия)",
-        "type": "string",
-        "sample": "<h2>Обязанности</h2><ul><li>...</li></ul>"
-    },
-    "short_description": {
-        "field_name": "short_description",
-        "description": "Короткое описание вакансии для карточек и списков",
-        "type": "string",
-        "sample": "<p>Мы ищем Senior Data Engineer...</p>"
-    },
-    "salary_description": {
-        "field_name": "salary_description",
-        "description": "Текстовое описание зарплаты",
-        "type": "string",
-        "sample": "250 000 — 300 000 ₽/мес на руки"
+        "sample": "225000"
     },
     "salary_hidden": {
         "field_name": "salary_hidden",
         "description": "Признак скрытой зарплаты",
         "type": "bool",
         "sample": "False"
-    },
-    "salary_display_from": {
-        "field_name": "salary_display_from",
-        "description": "Минимальное значение зарплаты",
-        "type": "float",
-        "sample": 250000.0
-    },
-    "salary_display_to": {
-        "field_name": "salary_display_to",
-        "description": "Максимальное значение зарплаты",
-        "type": "float",
-        "sample": 300000.0
-    },
-    "salary_currency": {
-        "field_name": "salary_currency",
-        "description": "Валюта зарплаты",
-        "type": "string",
-        "sample": "₽"
     },
     "salary_taxes": {
         "field_name": "salary_taxes",
@@ -149,52 +101,16 @@
         "type": "string",
         "sample": "м. Павелецкая"
     },
-    "remote_options": {
-        "field_name": "remote_options",
-        "description": "Ограничения по удалённой работе",
-        "type": "string",
-        "sample": "anywhere"
-    },
-    "office_options": {
-        "field_name": "office_options",
-        "description": "Формат работы в офисе",
-        "type": "string",
-        "sample": "few_days"
-    },
-    "relocation_options": {
-        "field_name": "relocation_options",
-        "description": "Варианты релокации",
-        "type": "list[string]",
-        "sample": ["company"]
-    },
     "stack": {
         "field_name": "stack",
         "description": "Список технологий и инструментов, может быть пустым",
         "type": "list[string]",
         "sample": ["Python", "SQL", "Kafka"]
     },
-    "stack_description": {
-        "field_name": "stack_description",
-        "description": "Расширенное HTML-описание технологического стека",
-        "type": "string",
-        "sample": "<ul><li>Python</li><li>Kafka</li></ul>"
-    },
     "team_size": {
         "field_name": "team_size",
         "description": "Размер команды",
         "type": "string",
         "sample": "6 - 10"
-    },
-    "url": {
-        "field_name": "url",
-        "description": "Относительный URL вакансии на сайте",
-        "type": "string",
-        "sample": "/vacancies/20000-senior-data-engineer"
-    },
-    "description_html": {
-        "field_name": "description_html",
-        "description": "HTML-блоки промо-описаний (ивенты, быстрые офферы)",
-        "type": "string",
-        "sample": "<div class='row'>...</div>"
     }
 }
