@@ -59,6 +59,3 @@ logs/
 
 # mypy
 .mypy_cache/
-
-# Assets
-assets/
